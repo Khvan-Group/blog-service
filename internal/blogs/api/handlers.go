@@ -65,6 +65,20 @@ func (a *API) Update(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (a *API) Send(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		panic(err)
+	}
+
+	if sendErr := a.blogs.Service.Send(id, getJwtUser(r)); sendErr != nil {
+		errors.HandleError(w, sendErr)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func (a *API) FindAll(w http.ResponseWriter, r *http.Request) {
 	var input blogs.BlogSearch
 	page, err := strconv.Atoi(mux.Vars(r)["page"])
@@ -83,15 +97,25 @@ func (a *API) FindAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sortFields := r.URL.Query()["sortFields"]
-	categories := r.URL.Query()["categories"]
+	status, existsStatus := mux.Vars(r)["status"]
+	category, existsCategory := mux.Vars(r)["category"]
 
-	if len(categories) > 0 {
-		if !blogs.IsValidCategoryList(categories) {
-			errors.HandleError(w, errors.NewBadRequest("Неверные переданные категории."))
+	if existsStatus {
+		if !blogs.IsValidStatus(status) {
+			errors.HandleError(w, errors.NewBadRequest("Неверный переданный статус."))
 			return
 		}
 
-		input.Categories = &categories
+		input.Status = &status
+	}
+
+	if existsCategory {
+		if !blogs.IsValidCategory(category) {
+			errors.HandleError(w, errors.NewBadRequest("Неверная переданная категория."))
+			return
+		}
+
+		input.Category = &category
 	}
 
 	input.Page = page

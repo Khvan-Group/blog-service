@@ -46,7 +46,7 @@ func (s *BlogStore) Update(id int, input blogs.BlogUpdate, currentUser model.Jwt
 	query := `update t_blogs set
                    title = :title,
                    content = :content,
-                   status = 'IN_REVIEW',
+                   status = 'DRAFT',
                    category = :category,
                    updated_at = now(),
                    updated_by = :updated_by
@@ -60,28 +60,33 @@ func (s *BlogStore) Update(id int, input blogs.BlogUpdate, currentUser model.Jwt
 	return nil
 }
 
+func (s *BlogStore) Send(id int, currentUser model.JwtUser) *errors.CustomError {
+	var blog blogs.Blog
+	err := s.db.Get(&blog, "select * from t_blogs where id = ?", id)
+
+	if err != nil {
+		return errors.NewBadRequest(fmt.Sprintf("Блог с ID: %d не найден.", id))
+	}
+
+	if blog.Status != blogs.DRAFT {
+		return errors.NewBadRequest("На рассмотрение можно отправить блог, только в статусе 'Черновик'")
+	}
+
+	if currentUser.Role == "USER" && blog.CreatedBy.Login != currentUser.Login {
+		return errors.NewForbidden("Недостаточно прав для отправки блога на рассмотрение.")
+	}
+
+	if _, err = s.db.Exec("update t_blogs set status = 'IN_REVIEW' where id =?", id); err != nil {
+		panic(err)
+	}
+
+	return nil
+}
+
 func (s *BlogStore) FindAll(input blogs.BlogSearch) []blogs.BlogView {
 	var response []blogs.BlogView
-	query := "select * from t_blogs "
+	query := buildQuery(input)
 
-	if input.CurrentUser.Role == "USER" {
-		query += "where status = 'ACTIVATED' and is_deleted is false "
-	}
-
-	if input.Title != nil && len(strings.Trim(*input.Title, " ")) != 0 {
-		query += "and title like '%" + *input.Title + "%' "
-	}
-
-	if input.Categories != nil && len(*input.Categories) > 0 {
-		query += fmt.Sprintf("and category in (%s) ", strings.Join(*input.Categories, ", "))
-	}
-
-	if len(input.SortBy) > 0 {
-		sortQuery := " order by " + strings.Join(input.SortBy, ", ")
-		query += sortQuery
-	}
-
-	query += " limit $1 offset $2"
 	err := s.db.Select(&response, query, input.Size, input.Page*input.Size)
 	if err != nil {
 		panic(err)
@@ -187,4 +192,31 @@ func validateUpdating(id int, input blogs.BlogUpdate, currentUserLogin string, d
 	}
 
 	return nil
+}
+
+func buildQuery(input blogs.BlogSearch) string {
+	query := "select * from t_blogs "
+
+	if input.CurrentUser.Role == "USER" {
+		query += "where status = 'ACTIVATED' and is_deleted is false "
+	}
+
+	if input.Title != nil && len(strings.Trim(*input.Title, " ")) != 0 {
+		query += "and title like '%" + *input.Title + "%' "
+	}
+
+	if input.Status != nil {
+		query += fmt.Sprintf("and status = '%s' ", *input.Status)
+	}
+
+	if input.Category != nil {
+		query += fmt.Sprintf("and category = '%s' ", *input.Category)
+	}
+
+	if len(input.SortBy) > 0 {
+		sortQuery := " order by " + strings.Join(input.SortBy, ", ")
+		query += sortQuery
+	}
+
+	return query + " limit $1 offset $2"
 }

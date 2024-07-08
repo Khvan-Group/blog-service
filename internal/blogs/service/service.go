@@ -9,6 +9,7 @@ import (
 type BlogService interface {
 	Create(input blogs.BlogCreate, currentUser model.JwtUser) *errors.CustomError
 	Update(id int, input blogs.BlogUpdate, currentUser model.JwtUser) *errors.CustomError
+	Send(id int, currentUser model.JwtUser) *errors.CustomError
 	FindAll(input blogs.BlogSearch) []blogs.BlogView
 	FindById(id int, currentUser model.JwtUser) (*blogs.BlogView, *errors.CustomError)
 	Delete(id int, currentUser model.JwtUser) *errors.CustomError

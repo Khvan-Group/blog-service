@@ -57,8 +57,9 @@ type BlogSearch struct {
 	Page        int
 	Size        int
 	SortBy      []string
-	Title       *string   `json:"title"`
-	Categories  *[]string `json:"category"`
+	Title       *string `json:"title"`
+	Status      *string `json:"status"`
+	Category    *string `json:"category"`
 	CurrentUser model.JwtUser
 }
 
@@ -68,7 +69,7 @@ const (
 	IN_REVIEW = "IN_REVIEW"
 	ACTIVATED = "ACTIVATED"
 	REJECTED  = "REJECTED"
-	
+
 	// Categories
 	IT         = "IT"
 	NEWS       = "NEWS"
@@ -83,7 +84,7 @@ func IsValidStatus(status string) bool {
 	case DRAFT, IN_REVIEW, ACTIVATED, REJECTED:
 		return true
 	}
-	
+
 	return false
 }
 
@@ -92,7 +93,7 @@ func IsValidCategory(category string) bool {
 	case IT, NEWS, MANAGEMENT, BUSINESS, GAMES, TRAVEL:
 		return true
 	}
-	
+
 	return false
 }
 
@@ -102,7 +103,7 @@ func IsValidCategoryList(list []string) bool {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -130,6 +131,6 @@ func ToViewList(list []Blog) []BlogView {
 	for _, l := range list {
 		response = append(response, *l.ToView())
 	}
-	
+
 	return response
 }

@@ -40,6 +40,7 @@ func (s *CommentStore) FindAll(blogId int) []model.CommentView {
         where c.blog_id = ?
 		order by c.created_at desc
 	`
+
 	err := s.db.Select(&comments, query, blogId)
 	if err != nil {
 		panic(err)
