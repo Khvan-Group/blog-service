@@ -83,16 +83,15 @@ func (a *API) FindAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sortFields := r.URL.Query()["sortFields"]
-	categoriesStr := r.URL.Query()["categories"]
+	categories := r.URL.Query()["categories"]
 
-	if len(categoriesStr) > 0 {
-		categories := blogs.ToCategoryList(categoriesStr)
-		input.Categories = &categories
-
-		if len(categories) != len(categoriesStr) {
-			errors.HandleError(w, errors.NewBadRequest(""))
+	if len(categories) > 0 {
+		if !blogs.IsValidCategoryList(categories) {
+			errors.HandleError(w, errors.NewBadRequest("Неверные переданные категории."))
 			return
 		}
+
+		input.Categories = &categories
 	}
 
 	input.Page = page
@@ -169,7 +168,7 @@ func (a *API) Confirm(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	confirmErr := a.blogs.Service.Confirm(id, blogs.ToStatus(status), getJwtUser(r))
+	confirmErr := a.blogs.Service.Confirm(id, status, getJwtUser(r))
 	if confirmErr != nil {
 		errors.HandleError(w, confirmErr)
 		return

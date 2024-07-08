@@ -5,7 +5,6 @@ import (
 	blogs "github.com/Khvan-Group/blog-service/internal/blogs/model"
 	"github.com/Khvan-Group/blog-service/internal/users/model"
 	"github.com/Khvan-Group/common-library/errors"
-	"github.com/Khvan-Group/common-library/utils"
 	"github.com/jmoiron/sqlx"
 	"strings"
 )
@@ -73,12 +72,12 @@ func (s *BlogStore) FindAll(input blogs.BlogSearch) []blogs.BlogView {
 		query += "and title like '%" + *input.Title + "%' "
 	}
 
-	if input.Category != nil && input.Category.IsValid() {
-		query += fmt.Sprintf("and category = '%s' ", utils.ToString(*input.Category))
+	if input.Categories != nil && len(*input.Categories) > 0 {
+		query += fmt.Sprintf("and category in (%s) ", strings.Join(*input.Categories, ", "))
 	}
 
 	if len(input.SortBy) > 0 {
-		sortQuery := "order by " + strings.Join(input.SortBy, ", ")
+		sortQuery := " order by " + strings.Join(input.SortBy, ", ")
 		query += sortQuery
 	}
 
@@ -145,7 +144,7 @@ func (s *BlogStore) LikeOrFavorite(id int, currentUser model.JwtUser, action str
 	}
 }
 
-func (s *BlogStore) Confirm(id int, status blogs.Status, currentUser model.JwtUser) *errors.CustomError {
+func (s *BlogStore) Confirm(id int, status string, currentUser model.JwtUser) *errors.CustomError {
 	if status != blogs.ACTIVATED && status != blogs.REJECTED {
 		return errors.NewBadRequest("Неверный переданный статус.")
 	}

@@ -11,7 +11,7 @@ type Blog struct {
 	CreatedBy *model.UserView `json:"created_by" db:"created_by"`
 	Title     string          `json:"title" db:"title"`
 	Content   string          `json:"content" db:"content"`
-	Status    Status          `json:"status" db:"status"`
+	Status    string          `json:"status" db:"status"`
 	Category  string          `json:"category" db:"category"`
 	Likes     int             `json:"likes" db:"likes"`
 	Favorites int             `json:"favorites" db:"favorites"`
@@ -44,7 +44,7 @@ type BlogView struct {
 	CreatedBy *model.UserView `json:"created_by" db:"created_by"`
 	Title     string          `json:"title" db:"title"`
 	Content   string          `json:"content" db:"content"`
-	Status    Status          `json:"status" db:"status"`
+	Status    string          `json:"status" db:"status"`
 	Category  string          `json:"category" db:"category"`
 	Likes     int             `json:"likes" db:"likes"`
 	Favorites int             `json:"favorites" db:"favorites"`
@@ -57,67 +57,53 @@ type BlogSearch struct {
 	Page        int
 	Size        int
 	SortBy      []string
-	Title       *string     `json:"title"`
-	Categories  *[]Category `json:"category"`
+	Title       *string   `json:"title"`
+	Categories  *[]string `json:"category"`
 	CurrentUser model.JwtUser
 }
 
-// enums
-
-type Status string
-type Category string
-
 const (
 	// Statuses
-	DRAFT     Status = "DRAFT"
-	IN_REVIEW Status = "IN_REVIEW"
-	ACTIVATED Status = "ACTIVATED"
-	REJECTED  Status = "REJECTED"
-
+	DRAFT     = "DRAFT"
+	IN_REVIEW = "IN_REVIEW"
+	ACTIVATED = "ACTIVATED"
+	REJECTED  = "REJECTED"
+	
 	// Categories
-	IT         Category = "IT"
-	NEWS       Category = "NEWS"
-	MANAGEMENT Category = "MANAGEMENT"
-	BUSINESS   Category = "BUSINESS"
-	GAMES      Category = "GAMES"
-	TRAVEL     Category = "TRAVEL"
+	IT         = "IT"
+	NEWS       = "NEWS"
+	MANAGEMENT = "MANAGEMENT"
+	BUSINESS   = "BUSINESS"
+	GAMES      = "GAMES"
+	TRAVEL     = "TRAVEL"
 )
 
-func ToStatus(s string) Status {
-	return Status(s)
-}
-
-func ToCategory(s string) Category {
-	return Category(s)
-}
-
-func ToCategoryList(arr []string) []Category {
-	var result []Category
-	for _, c := range arr {
-		if Category(c).IsValid() {
-			return append(result, Category(c))
-		}
-	}
-
-	return result
-}
-
-func (s Status) IsValid() bool {
-	switch s {
+func IsValidStatus(status string) bool {
+	switch status {
 	case DRAFT, IN_REVIEW, ACTIVATED, REJECTED:
 		return true
 	}
-
+	
 	return false
 }
 
-func (c Category) IsValid() bool {
-	switch c {
+func IsValidCategory(category string) bool {
+	switch category {
 	case IT, NEWS, MANAGEMENT, BUSINESS, GAMES, TRAVEL:
 		return true
 	}
-
+	
 	return false
+}
+
+func IsValidCategoryList(list []string) bool {
+	for _, c := range list {
+		if !IsValidCategory(c) {
+			return false
+		}
+	}
+	
+	return true
 }
 
 // mapper
@@ -144,6 +130,6 @@ func ToViewList(list []Blog) []BlogView {
 	for _, l := range list {
 		response = append(response, *l.ToView())
 	}
-
+	
 	return response
 }

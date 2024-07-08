@@ -20,7 +20,7 @@ const (
 
 func (a *API) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(CONTENT_TYPE, APPLICATION_JSON)
-	input := comments.CommentCreate{}
+	var input comments.CommentCreate
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {

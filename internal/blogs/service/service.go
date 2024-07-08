@@ -13,7 +13,7 @@ type BlogService interface {
 	FindById(id int, currentUser model.JwtUser) (*blogs.BlogView, *errors.CustomError)
 	Delete(id int, currentUser model.JwtUser) *errors.CustomError
 	LikeOrFavorite(id int, currentUser model.JwtUser, action string)
-	Confirm(id int, status blogs.Status, currentUser model.JwtUser) *errors.CustomError
+	Confirm(id int, status string, currentUser model.JwtUser) *errors.CustomError
 }
 
 type Blogs struct {
