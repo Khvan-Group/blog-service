@@ -1,97 +1,182 @@
 package store
 
 import (
-	"database/sql"
 	"fmt"
-	blogs "github.com/dkhvan-dev/alabs_project/blog-service/internal/blogs/model"
-	"github.com/dkhvan-dev/alabs_project/common-libraries/errors"
+	blogs "github.com/Khvan-Group/blog-service/internal/blogs/model"
+	"github.com/Khvan-Group/blog-service/internal/users/model"
+	"github.com/Khvan-Group/common-library/errors"
+	"github.com/Khvan-Group/common-library/utils"
+	"github.com/jmoiron/sqlx"
+	"strings"
 )
 
 type BlogStore struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func New(db *sql.DB) *BlogStore {
+func New(db *sqlx.DB) *BlogStore {
 	return &BlogStore{
 		db: db,
 	}
 }
 
-func (s *BlogStore) Create(input blogs.BlogCreate, currentUserLogin string) *errors.Error {
+func (s *BlogStore) Create(input blogs.BlogCreate, currentUser model.JwtUser) *errors.CustomError {
+	input.CreatedBy = currentUser.Login
 	if len(input.Title) == 0 || len(input.Content) == 0 {
 		return errors.NewBadRequest("Пустой заголовок или содержание.")
 	}
 
-	_, err := s.db.Exec("insert into t_blogs(created_by, title, content, category) values (?, ?, ?, ?)", currentUserLogin, input.Title, input.Content, input.Category)
-	if err != nil {
-		return errors.NewInternal("Внутренняя ошибка: Ошибка создания блога.")
-	}
-
-	return nil
-}
-
-func (s *BlogStore) Update(id int, input blogs.BlogUpdate, currentUserLogin string) *errors.Error {
-	if err := validateUpdating(id, input, s.db); err != nil {
-		return err
-	}
-
-	_, err := s.db.Exec("update t_blogs set title = ?, content = ?, status = 'IN_REVIEW', category = ?, updated_at = now(), updated_by = ? where id = ?", input.Title, input.Content, input.Category, currentUserLogin, id)
-	if err != nil {
-		return errors.NewInternal("Внутренняя ошибка: Ошибка обновления блога.")
-	}
-
-	return nil
-}
-
-func (s *BlogStore) FindAll(page, size int) []blogs.BlogView {
-	var entityList []blogs.Blog
-	rows, err := s.db.Query("select * from t_blogs limit ? offset ?", size, page)
+	query := `insert into t_blogs(created_by, title, content, category)
+			  values (:created_by, :title, :content, :category)
+	`
+	_, err := s.db.NamedExec(query, input)
 	if err != nil {
 		panic(err)
 	}
 
-	defer rows.Close()
-
-	for rows.Next() {
-		if err = rows.Scan(&entityList); err != nil {
-			panic(err)
-		}
-	}
-
-	return blogs.ToViewList(entityList)
+	return nil
 }
 
-func (s *BlogStore) FindById(id int) (*blogs.BlogView, *errors.Error) {
-	var blog blogs.Blog
-	row := s.db.QueryRow("select * from t_blogs where id = ?", id)
-
-	if err := row.Scan(&blog); err != nil {
-		return nil, errors.NewBadRequest(fmt.Sprintf("Блог с ID: %s не найден.", id))
+func (s *BlogStore) Update(id int, input blogs.BlogUpdate, currentUser model.JwtUser) *errors.CustomError {
+	input.Id = id
+	input.UpdatedBy = currentUser.Login
+	if err := validateUpdating(id, input, currentUser.Login, s.db); err != nil {
+		return err
 	}
 
-	return blog.ToView(), nil
-}
-
-func (s *BlogStore) Delete(id int) *errors.Error {
-	var isExists bool
-	row := s.db.QueryRow("select exists(select 1 from t_blogs where id = ?)", id)
-	row.Scan(&isExists)
-
-	if !isExists {
-		return errors.NewBadRequest(fmt.Sprintf("Блог с ID: %s не найден.", id))
+	query := `update t_blogs set
+                   title = :title,
+                   content = :content,
+                   status = 'IN_REVIEW',
+                   category = :category,
+                   updated_at = now(),
+                   updated_by = :updated_by
+               where id = :id
+	`
+	_, err := s.db.NamedExec(query, input)
+	if err != nil {
+		panic(err)
 	}
-
-	s.db.Exec("update t_blogs set is_deleted = true where id = ?", id)
 
 	return nil
 }
 
-func validateUpdating(id int, input blogs.BlogUpdate, db *sql.DB) *errors.Error {
-	var blog blogs.Blog
-	row := db.QueryRow("select * from t_blogs where id = ? and is_deleted is false", id)
+func (s *BlogStore) FindAll(input blogs.BlogSearch) []blogs.BlogView {
+	var response []blogs.BlogView
+	query := "select * from t_blogs "
 
-	if err := row.Scan(&blog); err != nil {
-		return errors.NewBadRequest(fmt.Sprintf("Блог с ID: %s не найден.", id))
+	if input.CurrentUser.Role == "USER" {
+		query += "where status = 'ACTIVATED' and is_deleted is false "
+	}
+
+	if input.Title != nil && len(strings.Trim(*input.Title, " ")) != 0 {
+		query += "and title like '%" + *input.Title + "%' "
+	}
+
+	if input.Category != nil && input.Category.IsValid() {
+		query += fmt.Sprintf("and category = '%s' ", utils.ToString(*input.Category))
+	}
+
+	if len(input.SortBy) > 0 {
+		sortQuery := "order by " + strings.Join(input.SortBy, ", ")
+		query += sortQuery
+	}
+
+	query += " limit $1 offset $2"
+	err := s.db.Select(&response, query, input.Size, input.Page*input.Size)
+	if err != nil {
+		panic(err)
+	}
+
+	return response
+}
+
+func (s *BlogStore) FindById(id int, currentUser model.JwtUser) (*blogs.BlogView, *errors.CustomError) {
+	var response blogs.BlogView
+	err := s.db.Get(&response, "select * from t_blogs where id = ?", id)
+
+	if err != nil {
+		return nil, errors.NewBadRequest(fmt.Sprintf("Блог с ID: %d не найден.", id))
+	}
+
+	if currentUser.Role == "USER" && response.Status != blogs.ACTIVATED && response.CreatedBy.Login != currentUser.Login {
+		return nil, errors.NewForbidden("Недостаточно прав для просмотра.")
+	}
+
+	return &response, nil
+}
+
+func (s *BlogStore) Delete(id int, currentUser model.JwtUser) *errors.CustomError {
+	var blog blogs.Blog
+	err := s.db.Get(&blog, "select * from t_blogs where id = ?", id)
+
+	if err != nil {
+		return errors.NewBadRequest(fmt.Sprintf("Блог с ID: %d не найден.", id))
+	}
+
+	if currentUser.Role == "USER" && blog.CreatedBy.Login != currentUser.Login {
+		return errors.NewForbidden("Недостаточно прав для удаления блога.")
+	}
+
+	_, err = s.db.Exec("update t_blogs set is_deleted = true, deleted_at = now() where id = ?", id)
+	if err != nil {
+		panic(err)
+	}
+
+	return nil
+}
+
+func (s *BlogStore) LikeOrFavorite(id int, currentUser model.JwtUser, action string) {
+	query := `
+		update t_blogs set likes = likes+1;
+		insert into t_users_blogs (user_login, blog_id, favorites) values (?, ?, true)
+	`
+
+	if action == "favorites" {
+		query = `
+			update t_blogs set favorites = favorites+1;
+			insert into t_users_blogs (user_login, blog_id, likes) values (?, ?, true);
+		`
+	}
+
+	_, err := s.db.Exec(query, currentUser.Login, id)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (s *BlogStore) Confirm(id int, status blogs.Status, currentUser model.JwtUser) *errors.CustomError {
+	if status != blogs.ACTIVATED && status != blogs.REJECTED {
+		return errors.NewBadRequest("Неверный переданный статус.")
+	}
+
+	blog, err := s.FindById(id, currentUser)
+	if err != nil {
+		return err
+	}
+
+	if blog.Status != blogs.IN_REVIEW {
+		return errors.NewBadRequest("Подтвердить блог можно только находящийся в статусе 'На рассмотрении'.")
+	}
+
+	_, execErr := s.db.Exec("update t_blogs set status = ? where id = ?", status)
+	if execErr != nil {
+		panic(err)
+	}
+
+	return nil
+}
+
+func validateUpdating(id int, input blogs.BlogUpdate, currentUserLogin string, db *sqlx.DB) *errors.CustomError {
+	var blog blogs.Blog
+	err := db.Get(&blog, "select * from t_blogs where id = ? and is_deleted is false", id)
+
+	if err != nil {
+		return errors.NewBadRequest(fmt.Sprintf("Блог с ID: %d не найден.", id))
+	}
+
+	if blog.CreatedBy.Login != currentUserLogin {
+		return errors.NewForbidden("Вы не являетесь создателем данного блога.")
 	}
 
 	if blog.Status == blogs.IN_REVIEW {

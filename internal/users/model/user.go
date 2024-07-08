@@ -1,31 +1,36 @@
 package model
 
 type User struct {
-	Login      string  `json:"login"`
-	Password   string  `json:"password"`
-	Email      string  `json:"email"`
-	FirstName  string  `json:"firstName"`
-	MiddleName *string `json:"middleName"`
-	LastName   string  `json:"lastName"`
-	Birthdate  string  `json:"birthdate"`
-	Role       Role    `json:"role"`
+	Login      string  `json:"login" db:"login"`
+	Password   string  `json:"password" db:"password"`
+	Email      string  `json:"email" db:"email"`
+	FirstName  string  `json:"firstName" db:"first_name"`
+	MiddleName *string `json:"middleName" db:"middle_name"`
+	LastName   string  `json:"lastName" db:"last_name"`
+	Birthdate  string  `json:"birthdate" db:"birthdate"`
+	Role       Role    `json:"role" db:"role"`
 }
 
 type Role struct {
-	Code string `json:"code"`
-	Name string `json:"name"`
+	Code string `json:"code" db:"code"`
+	Name string `json:"name" db:"name"`
 }
 
 // DTOs
 
 type UserView struct {
-	Login      string  `json:"login"`
-	Email      string  `json:"email"`
-	FirstName  string  `json:"firstName"`
-	MiddleName *string `json:"middleName"`
-	LastName   string  `json:"lastName"`
-	Birthdate  string  `json:"birthdate"`
-	Role       Role    `json:"role"`
+	Login      string  `json:"login" db:"login"`
+	Email      string  `json:"email" db:"email"`
+	FirstName  string  `json:"firstName" db:"first_name"`
+	MiddleName *string `json:"middleName" db:"middle_name"`
+	LastName   string  `json:"lastName" db:"last_name"`
+	Birthdate  string  `json:"birthdate" db:"birthdate"`
+	Role       Role    `json:"role" db:"role"`
+}
+
+type JwtUser struct {
+	Login string
+	Role  string
 }
 
 // mapper

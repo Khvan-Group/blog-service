@@ -1,53 +1,65 @@
 package blogs
 
 import (
-	"github.com/dkhvan-dev/alabs_project/blog-service/internal/users/model"
+	"github.com/Khvan-Group/blog-service/internal/users/model"
 	"time"
 )
 
 type Blog struct {
-	Id        int         `json:"id"`
-	CreatedAt time.Time   `json:"created_at"`
-	CreatedBy model.User  `json:"created_by"`
-	Title     string      `json:"title"`
-	Content   string      `json:"content"`
-	Status    Status      `json:"status"`
-	Category  string      `json:"category"`
-	Likes     int         `json:"likes"`
-	Favorites int         `json:"favorites"`
-	Watches   int         `json:"watches"`
-	UpdatedAt *time.Time  `json:"updated_at"`
-	UpdatedBy *model.User `json:"updated_by"`
-	DeletedAt *time.Time  `json:"deleted_at"`
-	DeletedBy *model.User `json:"deleted_by"`
+	Id        int             `json:"id" db:"id"`
+	CreatedAt time.Time       `json:"created_at" db:"created_at"`
+	CreatedBy *model.UserView `json:"created_by" db:"created_by"`
+	Title     string          `json:"title" db:"title"`
+	Content   string          `json:"content" db:"content"`
+	Status    Status          `json:"status" db:"status"`
+	Category  string          `json:"category" db:"category"`
+	Likes     int             `json:"likes" db:"likes"`
+	Favorites int             `json:"favorites" db:"favorites"`
+	Watches   int             `json:"watches" db:"watches"`
+	UpdatedAt *time.Time      `json:"updated_at" db:"updated_at"`
+	UpdatedBy *model.UserView `json:"updated_by" db:"updated_by"`
+	DeletedAt *time.Time      `json:"deleted_at" db:"deleted_at"`
+	DeletedBy *model.User     `json:"deleted_by" db:"deleted_by"`
 }
 
 // DTOs
 type BlogCreate struct {
-	Title    string `json:"title"`
-	Content  string `json:"content"`
-	Category string `json:"category"`
+	Title     string `json:"title" db:"title"`
+	Content   string `json:"content" db:"content"`
+	Category  string `json:"category" db:"category"`
+	CreatedBy string `db:"created_by"`
 }
 
 type BlogUpdate struct {
-	Title    string `json:"title"`
-	Content  string `json:"content"`
-	Category string `json:"category"`
+	Id        int    `db:"id"`
+	Title     string `json:"title" db:"title"`
+	Content   string `json:"content" db:"content"`
+	Category  string `json:"category" db:"category"`
+	UpdatedBy string `db:"updated_by"`
 }
 
 type BlogView struct {
-	Id        int             `json:"id"`
-	CreatedAt time.Time       `json:"created_at"`
-	CreatedBy *model.UserView `json:"created_by"`
-	Title     string          `json:"title"`
-	Content   string          `json:"content"`
-	Status    Status          `json:"status"`
-	Category  string          `json:"category"`
-	Likes     int             `json:"likes"`
-	Favorites int             `json:"favorites"`
-	Watches   int             `json:"watches"`
-	UpdatedAt *time.Time      `json:"updated_at"`
-	UpdatedBy *model.UserView `json:"updated_by"`
+	Id        int             `json:"id" db:"id"`
+	CreatedAt time.Time       `json:"created_at" db:"created_at"`
+	CreatedBy *model.UserView `json:"created_by" db:"created_by"`
+	Title     string          `json:"title" db:"title"`
+	Content   string          `json:"content" db:"content"`
+	Status    Status          `json:"status" db:"status"`
+	Category  string          `json:"category" db:"category"`
+	Likes     int             `json:"likes" db:"likes"`
+	Favorites int             `json:"favorites" db:"favorites"`
+	Watches   int             `json:"watches" db:"watches"`
+	UpdatedAt *time.Time      `json:"updated_at" db:"updated_at"`
+	UpdatedBy *model.UserView `json:"updated_by" db:"updated_by"`
+}
+
+type BlogSearch struct {
+	Page        int
+	Size        int
+	SortBy      []string
+	Title       *string     `json:"title"`
+	Categories  *[]Category `json:"category"`
+	CurrentUser model.JwtUser
 }
 
 // enums
@@ -70,6 +82,25 @@ const (
 	GAMES      Category = "GAMES"
 	TRAVEL     Category = "TRAVEL"
 )
+
+func ToStatus(s string) Status {
+	return Status(s)
+}
+
+func ToCategory(s string) Category {
+	return Category(s)
+}
+
+func ToCategoryList(arr []string) []Category {
+	var result []Category
+	for _, c := range arr {
+		if Category(c).IsValid() {
+			return append(result, Category(c))
+		}
+	}
+
+	return result
+}
 
 func (s Status) IsValid() bool {
 	switch s {
@@ -95,7 +126,7 @@ func (b *Blog) ToView() *BlogView {
 	return &BlogView{
 		Id:        b.Id,
 		CreatedAt: b.CreatedAt,
-		CreatedBy: b.CreatedBy.ToView(),
+		CreatedBy: b.CreatedBy,
 		Title:     b.Title,
 		Content:   b.Content,
 		Status:    b.Status,
@@ -104,7 +135,7 @@ func (b *Blog) ToView() *BlogView {
 		Favorites: b.Favorites,
 		Watches:   b.Watches,
 		UpdatedAt: b.UpdatedAt,
-		UpdatedBy: b.UpdatedBy.ToView(),
+		UpdatedBy: b.UpdatedBy,
 	}
 }
 

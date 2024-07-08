@@ -1,11 +1,16 @@
 package main
 
 import (
-	"github.com/dkhvan-dev/alabs_project/blog-service/internal/blogs/service"
-	"github.com/dkhvan-dev/alabs_project/blog-service/internal/blogs/store"
-	"github.com/dkhvan-dev/alabs_project/blog-service/internal/db"
-	"github.com/dkhvan-dev/alabs_project/common-libraries/logger"
-	"github.com/dkhvan-dev/alabs_project/common-libraries/utils"
+	"github.com/Khvan-Group/blog-service/internal/api"
+	blogApi "github.com/Khvan-Group/blog-service/internal/blogs/api"
+	blogService "github.com/Khvan-Group/blog-service/internal/blogs/service"
+	blogStore "github.com/Khvan-Group/blog-service/internal/blogs/store"
+	commentApi "github.com/Khvan-Group/blog-service/internal/comments/api"
+	commentService "github.com/Khvan-Group/blog-service/internal/comments/service"
+	commentStore "github.com/Khvan-Group/blog-service/internal/comments/store"
+	"github.com/Khvan-Group/blog-service/internal/db"
+	"github.com/Khvan-Group/common-library/logger"
+	"github.com/Khvan-Group/common-library/utils"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"net/http"
@@ -31,9 +36,17 @@ func start() {
 	db.InitDB()
 
 	port := ":" + utils.GetEnv(SERVER_PORT)
+	newBlogStore := blogStore.New(db.DB)
+	newBlogService := blogService.New(newBlogStore)
+	newBlogApi := blogApi.New(*newBlogService, db.DB)
+
+	newCommentStore := commentStore.New(db.DB)
+	newCommentService := commentService.New(newCommentStore)
+	newCommentApi := commentApi.New(*newCommentService, db.DB)
+
+	srv := api.New(*newBlogApi, *newCommentApi, db.DB)
 	r := mux.NewRouter()
-	blogStore := store.New(db.DB)
-	blogService := service.New(blogStore)
+	srv.AddRoutes(r)
 
 	logger.Logger.Fatal(http.ListenAndServe(port, r).Error())
 }

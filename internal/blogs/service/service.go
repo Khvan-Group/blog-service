@@ -1,16 +1,19 @@
 package service
 
 import (
-	blogs "github.com/dkhvan-dev/alabs_project/blog-service/internal/blogs/model"
-	"github.com/dkhvan-dev/alabs_project/common-libraries/errors"
+	blogs "github.com/Khvan-Group/blog-service/internal/blogs/model"
+	"github.com/Khvan-Group/blog-service/internal/users/model"
+	"github.com/Khvan-Group/common-library/errors"
 )
 
 type BlogService interface {
-	Create(input blogs.BlogCreate, currentUserLogin string) *errors.Error
-	Update(id int, input blogs.BlogUpdate, currentUserLogin string) *errors.Error
-	FindAll(page, size int) []blogs.BlogView
-	FindById(id int) (*blogs.BlogView, *errors.Error)
-	Delete(id int) *errors.Error
+	Create(input blogs.BlogCreate, currentUser model.JwtUser) *errors.CustomError
+	Update(id int, input blogs.BlogUpdate, currentUser model.JwtUser) *errors.CustomError
+	FindAll(input blogs.BlogSearch) []blogs.BlogView
+	FindById(id int, currentUser model.JwtUser) (*blogs.BlogView, *errors.CustomError)
+	Delete(id int, currentUser model.JwtUser) *errors.CustomError
+	LikeOrFavorite(id int, currentUser model.JwtUser, action string)
+	Confirm(id int, status blogs.Status, currentUser model.JwtUser) *errors.CustomError
 }
 
 type Blogs struct {

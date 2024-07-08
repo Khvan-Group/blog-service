@@ -1,13 +1,13 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
-	"github.com/dkhvan-dev/alabs_project/common-libraries/utils"
+	"github.com/Khvan-Group/common-library/utils"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
-var DB *sql.DB
+var DB *sqlx.DB
 
 func InitDB() {
 	dbHost := utils.GetEnv("DB_HOST")
@@ -19,7 +19,7 @@ func InitDB() {
 
 	dbUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s", dbUser, dbPass, dbHost, dbPort, dbName, sslmode)
 
-	db, err := sql.Open("postgres", dbUrl)
+	db, err := sqlx.Open("postgres", dbUrl)
 	if err != nil {
 		panic(err)
 	}
