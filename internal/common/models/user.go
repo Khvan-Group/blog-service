@@ -1,4 +1,4 @@
-package model
+package models
 
 type User struct {
 	Login      string  `json:"login" db:"login"`
@@ -31,18 +31,4 @@ type UserView struct {
 type JwtUser struct {
 	Login string
 	Role  string
-}
-
-// mapper
-
-func (u *User) ToView() *UserView {
-	return &UserView{
-		Login:      u.Login,
-		Email:      u.Email,
-		FirstName:  u.FirstName,
-		MiddleName: u.MiddleName,
-		LastName:   u.LastName,
-		Birthdate:  u.Birthdate,
-		Role:       u.Role,
-	}
 }

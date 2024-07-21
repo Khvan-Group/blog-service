@@ -1,13 +1,9 @@
 package main
 
 import (
+	_ "github.com/Khvan-Group/blog-service/docs"
 	"github.com/Khvan-Group/blog-service/internal/api"
-	blogApi "github.com/Khvan-Group/blog-service/internal/blogs/api"
-	blogService "github.com/Khvan-Group/blog-service/internal/blogs/service"
-	blogStore "github.com/Khvan-Group/blog-service/internal/blogs/store"
-	commentApi "github.com/Khvan-Group/blog-service/internal/comments/api"
-	commentService "github.com/Khvan-Group/blog-service/internal/comments/service"
-	commentStore "github.com/Khvan-Group/blog-service/internal/comments/store"
+	"github.com/Khvan-Group/blog-service/internal/core/rabbitmq"
 	"github.com/Khvan-Group/blog-service/internal/db"
 	"github.com/Khvan-Group/common-library/logger"
 	"github.com/Khvan-Group/common-library/utils"
@@ -18,6 +14,15 @@ import (
 
 const SERVER_PORT = "SERVER_PORT"
 
+// @title Blog Service API
+// @version 1.0.3
+// @description Blog Service.
+// @host localhost:8082
+// @BasePath /api/v1
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+// @BasePath /
 func main() {
 	start()
 }
@@ -32,20 +37,15 @@ func start() {
 		panic(err)
 	}
 
+	// init RabbitMQ
+	rabbitmq.InitRabbitMQ()
+
 	// init db
 	db.InitDB()
 
 	port := ":" + utils.GetEnv(SERVER_PORT)
-	newBlogStore := blogStore.New(db.DB)
-	newBlogService := blogService.New(newBlogStore)
-	newBlogApi := blogApi.New(*newBlogService, db.DB)
-
-	newCommentStore := commentStore.New(db.DB)
-	newCommentService := commentService.New(newCommentStore)
-	newCommentApi := commentApi.New(*newCommentService, db.DB)
-
-	srv := api.New(*newBlogApi, *newCommentApi, db.DB)
 	r := mux.NewRouter()
+	srv := api.New()
 	srv.AddRoutes(r)
 
 	logger.Logger.Fatal(http.ListenAndServe(port, r).Error())

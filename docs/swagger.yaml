@@ -1,0 +1,518 @@
+basePath: /api/v1
+definitions:
+  errors.CustomError:
+    properties:
+      code:
+        type: integer
+      msg:
+        type: string
+    type: object
+  github_com_Khvan-Group_blog-service_internal_blogs_models.BlogCreate:
+    properties:
+      category:
+        type: string
+      content:
+        type: string
+      createdBy:
+        type: string
+      title:
+        type: string
+    type: object
+  github_com_Khvan-Group_blog-service_internal_blogs_models.BlogUpdate:
+    properties:
+      category:
+        type: string
+      content:
+        type: string
+      id:
+        type: integer
+      title:
+        type: string
+      updatedBy:
+        type: string
+    type: object
+  github_com_Khvan-Group_blog-service_internal_blogs_models.BlogView:
+    properties:
+      category:
+        $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_categories_models.Category'
+      content:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_common_models.UserView'
+      favorites:
+        type: integer
+      id:
+        type: integer
+      likes:
+        type: integer
+      status:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      updated_by:
+        $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_common_models.UserView'
+    type: object
+  github_com_Khvan-Group_blog-service_internal_categories_models.Category:
+    properties:
+      code:
+        type: string
+      name:
+        type: string
+    type: object
+  github_com_Khvan-Group_blog-service_internal_comments_models.CommentCreate:
+    properties:
+      blog_id:
+        type: integer
+      comment:
+        type: string
+      createdBy:
+        type: string
+    type: object
+  github_com_Khvan-Group_blog-service_internal_comments_models.CommentView:
+    properties:
+      comment:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_common_models.UserView'
+      id:
+        type: integer
+    type: object
+  github_com_Khvan-Group_blog-service_internal_common_models.Role:
+    properties:
+      code:
+        type: string
+      name:
+        type: string
+    type: object
+  github_com_Khvan-Group_blog-service_internal_common_models.UserView:
+    properties:
+      birthdate:
+        type: string
+      email:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      login:
+        type: string
+      middleName:
+        type: string
+      role:
+        $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_common_models.Role'
+    type: object
+host: localhost:8082
+info:
+  contact: {}
+  description: Blog Service.
+  title: Blog Service API
+  version: 1.0.3
+paths:
+  /blogs:
+    get:
+      consumes:
+      - application/json
+      operationId: find-all-blogs
+      parameters:
+      - description: ID блога
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - description: Количество элементов
+        in: query
+        name: size
+        type: integer
+      - description: Сортируемые поля
+        in: query
+        name: sortFields
+        type: string
+      - description: Заголовок блога
+        in: query
+        name: title
+        type: string
+      - description: Статус блога
+        in: query
+        name: status
+        type: string
+      - description: Категория блога
+        in: query
+        name: category
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_blogs_models.BlogView'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Получить список блогов
+    post:
+      consumes:
+      - application/json
+      operationId: create-blog
+      parameters:
+      - description: Информация о создаваемом блоге
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_blogs_models.BlogCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Создание блога
+  /blogs/{id}:
+    delete:
+      consumes:
+      - application/json
+      operationId: delete-blog
+      parameters:
+      - description: ID блога
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить блог
+    get:
+      consumes:
+      - application/json
+      operationId: find-by-id-blog
+      parameters:
+      - description: ID блога
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_blogs_models.BlogView'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Получить блог по ID
+    post:
+      consumes:
+      - application/json
+      operationId: like-or-favorite-blog
+      parameters:
+      - description: ID блога
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Лайкнуть или добавить в избранные
+        in: query
+        name: action
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Лайкнуть или добавить блог в избранное
+    put:
+      consumes:
+      - application/json
+      operationId: update-blog
+      parameters:
+      - description: ID блога
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Информация об обновляемом блоге
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_blogs_models.BlogUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Обновление блога
+  /blogs/{id}/confirm:
+    post:
+      consumes:
+      - application/json
+      operationId: confirm-blog
+      parameters:
+      - description: ID блога
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Статус блога
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Утвердить или отклонить блог
+  /blogs/{id}/send:
+    post:
+      consumes:
+      - application/json
+      operationId: send-blog
+      parameters:
+      - description: ID блога
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Отправить блог на рассмотрение модератора
+  /blogs/{username}/delete:
+    delete:
+      consumes:
+      - application/json
+      operationId: delete-all-blogs-by-user
+      parameters:
+      - description: Логин пользователя
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить все блоги пользователя
+  /categories:
+    get:
+      consumes:
+      - application/json
+      operationId: find-all-categories
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_categories_models.Category'
+              type: array
+            type: array
+      summary: Получение списка категорий
+    post:
+      consumes:
+      - application/json
+      operationId: create-update-category
+      parameters:
+      - description: Информация о создаваемой/изменяемой категории
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_categories_models.Category'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Создание/Изменение категории
+  /categories/{code}:
+    delete:
+      consumes:
+      - application/json
+      operationId: delete-category
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.CustomError'
+      summary: Удаление категории
+  /comments:
+    get:
+      consumes:
+      - application/json
+      operationId: find-all-comments
+      parameters:
+      - description: ID блога
+        in: query
+        name: blogId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_comments_models.CommentView'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.CustomError'
+      summary: Получение списка комментариев блога
+    post:
+      consumes:
+      - application/json
+      operationId: create-comment
+      parameters:
+      - description: Информация о создаваемом комментарии
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_Khvan-Group_blog-service_internal_comments_models.CommentCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.CustomError'
+      security:
+      - ApiKeyAuth: []
+      summary: Создание комментария
+  /comments/{id}:
+    delete:
+      consumes:
+      - application/json
+      operationId: delete-comment
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.CustomError'
+      security:
+      - ApiKeyAuth: []
+      summary: Удаление комментария
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -1,10 +1,18 @@
 package db
 
 import (
+	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	customErrors "github.com/Khvan-Group/common-library/errors"
 	"github.com/Khvan-Group/common-library/utils"
+	"github.com/golang-migrate/migrate"
+	"github.com/golang-migrate/migrate/database/postgres"
+	_ "github.com/golang-migrate/migrate/source/file"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"os"
 )
 
 var DB *sqlx.DB
@@ -29,4 +37,63 @@ func InitDB() {
 	}
 
 	DB = db
+	migrateSql(DB)
+}
+
+func migrateSql(db *sqlx.DB) {
+	migrationsPath := "file://internal/migrations"
+	dbName := os.Getenv("DB_NAME")
+	driver, err := postgres.WithInstance(db.DB, &postgres.Config{})
+	if err != nil {
+		panic(err)
+	}
+
+	migrator, err := migrate.NewWithDatabaseInstance(migrationsPath, dbName, driver)
+	if err != nil {
+		panic(err)
+	}
+
+	if err = migrator.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		panic(err)
+	}
+}
+
+func StartTransaction(txFunc func(*sqlx.Tx) *customErrors.CustomError) *customErrors.CustomError {
+	tx, err := DB.Beginx()
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		} else if err != nil {
+			tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
+
+	return txFunc(tx)
+}
+
+func StartReadOnlyTransaction(txFunc func(*sqlx.Tx) *customErrors.CustomError) *customErrors.CustomError {
+	tx, err := DB.BeginTxx(context.Background(), &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		} else if err != nil {
+			tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
+
+	return txFunc(tx)
 }
