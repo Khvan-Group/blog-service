@@ -16,7 +16,7 @@ func GetUserByLogin(login string, client *resty.Client) (*models.UserView, *erro
 	var user models.UserView
 	request := client.R()
 	request.Header.Set(constants.X_IS_INTERNAL_SERVICE, "true")
-	response, err := request.Get(AUTH_SERVICE_URL + "/admin/users" + login)
+	response, err := request.Get(AUTH_SERVICE_URL + "/admin/users/" + login)
 	if err != nil {
 		panic(err)
 	}
