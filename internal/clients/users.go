@@ -10,9 +10,10 @@ import (
 	"net/http"
 )
 
-var AUTH_SERVICE_URL = utils.GetEnv("AUTH_SERVICE_URL")
+var AUTH_SERVICE_URL string
 
 func GetUserByLogin(login string, client *resty.Client) (*models.UserView, *errors.CustomError) {
+	AUTH_SERVICE_URL = utils.GetEnv("AUTH_SERVICE_URL")
 	var user models.UserView
 	request := client.R()
 	request.Header.Set(constants.X_IS_INTERNAL_SERVICE, "true")
